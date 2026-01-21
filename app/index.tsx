@@ -21,6 +21,7 @@ export default function Index() {
   const [todoList, setTodoList] = useState<TODO[]>([]);
   const [darkMode, setDarkMode] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [task, setTask] = useState("");
 
   useEffect(() => {
     loadData();
@@ -93,6 +94,7 @@ export default function Index() {
       ...todoList,
       { id: Date.now().toString(), title, completed: false },
     ]);
+    setTask(""); // clear input after adding
   };
 
   if (loading)
@@ -103,6 +105,65 @@ export default function Index() {
     );
 
   const bg = darkMode ? styles.darkBg : styles.lightBg;
+
+  const renderTodoItem = ({ item }: { item: TODO }) => (
+    <View
+      style={[styles.todoItem, { borderColor: darkMode ? "#333" : "#ddd" }]}
+    >
+      {/* CHECKBOX */}
+      <TouchableOpacity
+        style={styles.checkbox}
+        onPress={() => toggleTodo(item.id)}
+      >
+        {item.completed && <Text style={styles.tick}>✓</Text>}
+      </TouchableOpacity>
+
+      {/* INLINE EDIT */}
+      {item.editing ? (
+        <TextInput
+          value={item.title}
+          onChangeText={(val) => saveEdit(item.id, val)}
+          onSubmitEditing={() => saveEdit(item.id, item.title)}
+          onBlur={() => saveEdit(item.id, item.title)}
+          autoFocus
+          style={[
+            styles.inputEdit,
+            darkMode && styles.inputEditDark,
+            item.completed && styles.completed,
+          ]}
+        />
+      ) : (
+        <Text
+          style={[
+            styles.todoText,
+            darkMode ? { color: "#fff" } : { color: "#000" },
+            item.completed && styles.completed,
+          ]}
+        >
+          {item.title}
+        </Text>
+      )}
+
+      {/* EDIT BUTTON */}
+      {!item.editing && (
+        <TouchableOpacity onPress={() => startEdit(item.id)}>
+          <Text
+            style={[
+              styles.edit,
+              darkMode ? { color: "#fff" } : { color: "#000" },
+            ]}
+          >
+            ✎
+          </Text>
+        </TouchableOpacity>
+      )}
+
+      {/* DELETE BUTTON */}
+      <TouchableOpacity onPress={() => confirmDelete(item.id)}>
+        <Text style={styles.delete}>🗑</Text>
+      </TouchableOpacity>
+    </View>
+  );
 
   return (
     <View style={[styles.container, bg]}>
@@ -128,83 +189,27 @@ export default function Index() {
         </TouchableOpacity>
       </View>
 
+      {/* ADD NEW TODO */}
+      <View style={styles.addContainer}>
+        <TextInput
+          placeholder="Enter new task"
+          placeholderTextColor={darkMode ? "#aaa" : "#666"}
+          value={task}
+          onChangeText={setTask}
+          style={[styles.input, darkMode && styles.darkInput]}
+        />
+        <TouchableOpacity style={styles.addBtn} onPress={() => addTodo(task)}>
+          <Text style={styles.btnText}>Add</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* TODO LIST */}
       <FlatList
         data={todoList}
         keyExtractor={(item) => item.id}
         ListEmptyComponent={<Text style={styles.empty}>No todos yet</Text>}
-        renderItem={({ item }) => (
-          <View
-            style={[
-              styles.todoItem,
-              { borderColor: darkMode ? "#333" : "#ddd" },
-            ]}
-          >
-            {/* CHECKBOX */}
-            <TouchableOpacity
-              style={styles.checkbox}
-              onPress={() => toggleTodo(item.id)}
-            >
-              {item.completed && <Text style={styles.tick}>✓</Text>}
-            </TouchableOpacity>
-
-            {/* INLINE EDIT */}
-            {item.editing ? (
-              <TextInput
-                value={item.title}
-                onChangeText={(val) => saveEdit(item.id, val)}
-                onSubmitEditing={() => saveEdit(item.id, item.title)}
-                onBlur={() => saveEdit(item.id, item.title)}
-                autoFocus
-                style={[
-                  styles.inputEdit,
-                  darkMode && styles.inputEditDark,
-                  item.completed && styles.completed,
-                ]}
-              />
-            ) : (
-              <Text
-                style={[
-                  styles.todoText,
-                  darkMode ? { color: "#fff" } : { color: "#000" },
-                  item.completed && styles.completed,
-                ]}
-              >
-                {item.title}
-              </Text>
-            )}
-
-            {/* EDIT BUTTON */}
-            {!item.editing && (
-              <TouchableOpacity onPress={() => startEdit(item.id)}>
-                <Text
-                  style={[
-                    styles.edit,
-                    darkMode ? { color: "#fff" } : { color: "#000" },
-                  ]}
-                >
-                  ✎
-                </Text>
-              </TouchableOpacity>
-            )}
-
-            {/* DELETE BUTTON */}
-            <TouchableOpacity onPress={() => confirmDelete(item.id)}>
-              <Text style={styles.delete}>🗑</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+        renderItem={renderTodoItem}
       />
-
-      {/* ADD NEW TODO */}
-      <View style={styles.inputRow}>
-        <TextInput
-          placeholder="Enter new task"
-          placeholderTextColor={darkMode ? "#aaa" : "#666"}
-          onSubmitEditing={(e) => addTodo(e.nativeEvent.text)}
-          style={[styles.input, darkMode && styles.darkInput]}
-        />
-      </View>
     </View>
   );
 }
@@ -225,7 +230,11 @@ const styles = StyleSheet.create({
   heading: { fontSize: 22, fontWeight: "bold" },
   modeIcon: { fontSize: 24 },
 
-  inputRow: { flexDirection: "row", marginVertical: 15 },
+  addContainer: {
+    flexDirection: "row",
+    marginBottom: 15,
+    alignItems: "center",
+  },
   input: {
     flex: 1,
     borderWidth: 1,
@@ -235,6 +244,14 @@ const styles = StyleSheet.create({
     color: "#000",
   },
   darkInput: { backgroundColor: "#1e1e1e", color: "#fff", borderColor: "#333" },
+  addBtn: {
+    backgroundColor: "#4CAF50",
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 6,
+    marginLeft: 10,
+  },
+  btnText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
 
   todoItem: {
     flexDirection: "row",
